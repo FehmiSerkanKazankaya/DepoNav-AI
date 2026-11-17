@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c1425;color:#eaf3ff;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;font-size:13px}
+.sim{border:1px solid #273753;border-radius:16px;overflow:hidden;background:#111d31}
+.top{padding:15px 18px;border-bottom:1px solid #25344c;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.top h3{font-size:16px;margin:0 0 4px}.top p{margin:0;color:#aabdd8;font-size:12px}
+.live{color:#80e4c3;font-weight:700;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.live:before{content:"";width:7px;height:7px;border-radius:50%;background:#46cfaa;box-shadow:0 0 10px #46cfaa}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 245px;min-height:560px}
+.mapwrap{padding:8px 10px 6px;position:relative;background:radial-gradient(ellipse at center,#172941 0%,#0b1627 85%)}
+svg{width:100%;height:540px;display:block}
+aside{border-left:1px solid #25344c;padding:15px 13px;background:#101b2c;display:flex;flex-direction:column;min-height:540px}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{padding:10px;background:#1b2a40;border:1px solid #29405d;border-radius:10px}.stat small{display:block;color:#aec2dc;font-size:10px;margin-bottom:3px}.stat strong{font-size:19px}
+.current{background:#172a39;border:1px solid #22516a;border-radius:10px;padding:12px;margin-top:12px}.current small{color:#99c4d6}.current b{display:block;margin:5px 0;font-size:19px;color:#99f5d4}.current span{font-size:11px;color:#bad3e2}
+.listlabel{font-weight:700;margin:17px 0 8px;font-size:12px;color:#b9cee6}
+.stops{height:290px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;scrollbar-color:#3e5876 #15223a;scrollbar-width:thin}
+.stop{width:100%;text-align:left;padding:8px 10px;background:#162339;color:#cbd8e8;border:1px solid #293b54;border-radius:9px;cursor:pointer;font-size:11px}
+.stop:focus-visible{outline:2px solid #51b5dd}.stop.done{border-color:#24785f;color:#a2edc9;background:#12362c}.stop.active{border-color:#51b5dd;background:#17314a;color:white}
+.stop .snum{display:inline-grid;place-items:center;border-radius:50%;background:#31445d;width:19px;height:19px;margin-right:6px;color:white}
+.bottom{padding:14px 18px 17px;border-top:1px solid #25344c;background:#122036}
+.buttons{display:flex;align-items:center;gap:8px;flex-wrap:wrap}button{cursor:pointer;font-weight:700}
+.ctrl{border-radius:8px;padding:8px 13px;border:1px solid #3c5570;color:#ebf5ff;background:#273d59}.ctrl.primary{background:#28a88a;border-color:#28a88a;color:#071c19}
+select{border:1px solid #39536c;border-radius:8px;background:#20344d;padding:8px;color:white;margin-left:auto}
+input[type=range]{width:100%;accent-color:#42d7ac;margin:12px 0 0}
+.foot{display:flex;justify-content:space-between;color:#9ab1cc;font-size:10px;gap:12px}
+@media(max-width:650px){.main{grid-template-columns:1fr}aside{border-left:none;border-top:1px solid #25344c;min-height:auto}.stops{height:150px}svg{height:420px}.top{padding:12px}}
+</style>
+</head>
+<body>
+<div class="sim">
+  <div class="top"><div><h3>Forklift toplama simülasyonu</h3><p>2B şematik model • Raflara yaklaşma ve ürün toplama canlandırması</p></div><span class="live" id="run-state">HAZIR</span></div>
+  <div class="main">
+   <div class="mapwrap"><svg id="map" viewBox="0 0 560 620" role="img" aria-label="Depo rafları, optimal ziyaret rotası ve hareket eden forklift">
+    <defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#263a54" stroke-opacity=".4" stroke-width=".6"/></pattern><filter id="glow"><feGaussianBlur stdDeviation="2.2"/></filter></defs>
+    <rect x="2" y="2" width="556" height="615" rx="9" fill="url(#grid)" stroke="#253e58"/>
+    <g id="aisles"></g><g id="racks"></g><g id="links"></g><g id="route"></g><g id="picks"></g>
+    <g id="forklift" style="display:none">
+      <rect x="-12" y="-10" width="24" height="20" rx="4" fill="#ffc95c" stroke="#fff1b8" stroke-width="1.3"/>
+      <rect x="-4" y="-8" width="8" height="16" rx="2" fill="#1d3653" stroke="#e9f3ff" stroke-width="1"/>
+      <rect x="8" y="-7" width="8" height="14" fill="#f2a93a"/>
+      <line x1="17" y1="-9" x2="17" y2="9" stroke="#d9e5f8" stroke-width="2.2"/>
+      <line x1="17" y1="-8" x2="26" y2="-8" stroke="#d9e5f8" stroke-width="2.2"/>
+      <line x1="17" y1="8" x2="26" y2="8" stroke="#d9e5f8" stroke-width="2.2"/>
+      <circle cx="-5" cy="-12" r="3.4" fill="#020915" stroke="#71879d"/>
+      <circle cx="-5" cy="12" r="3.4" fill="#020915" stroke="#71879d"/>
+      <circle cx="18" cy="-12" r="3.4" fill="#020915" stroke="#71879d"/>
+      <circle cx="18" cy="12" r="3.4" fill="#020915" stroke="#71879d"/>
+    </g>
+    <g id="io-icon"></g>
+   </svg></div>
+   <aside><div class="statgrid">
+    <div class="stat"><small>Ziyaret edilen raf</small><strong id="stops-done">0</strong> / <span id="stops-total">0</span></div>
+    <div class="stat"><small>Toplanan ürün</small><strong id="units-done">0</strong> / <span id="units-total">0</span></div>
+    </div><div class="current"><small>Şu anki görev</small><b id="current-label">I/O → İlk raf</b><span id="current-info">Başlamak için Oynat'a basın</span></div>
+    <div class="listlabel">TOPLAMA DURAKLARI</div><div class="stops" id="stop-list"></div>
+   </aside>
+  </div>
+  <div class="bottom"><div class="buttons">
+   <button class="ctrl primary" id="play">▶ Oynat</button><button class="ctrl" id="pause">⏸ Duraklat</button><button class="ctrl" id="reset">↺ Baştan</button>
+   <select id="speed" aria-label="Simülasyon hızı"><option value="0.6">0,6× hız</option><option value="1" selected>1× hız</option><option value="2">2× hız</option><option value="4">4× hız</option></select>
+  </div><input id="seek" aria-label="Rota ilerlemesi" type="range" min="0" max="1000" value="0"/>
+  <div class="foot"><span id="travelled">İlerleme: 0 birim</span><span>Not: Sürüş ve toplama süreleri temsili; gerçek forklift telemetrisi değildir.</span></div>
+ </div>
+</div>
+<script type="application/json" id="payload">{"io":[401.0,630.0],"legs":[{"from":"I/O","to":"J-14-21","points":[[401.0,630.0],[401.0,749.0],[368.0,749.0]],"distance":152.0,"cumulative":152.0,"units":1},{"from":"J-14-21","to":"J-20-21","points":[[368.0,749.0],[218.0,749.0]],"distance":150.0,"cumulative":302.0,"units":1},{"from":"J-20-21","to":"L-17-23","points":[[218.0,749.0],[56.0,749.0],[56.0,929.0],[236.0,929.0]],"distance":522.0,"cumulative":824.0,"units":1},{"from":"L-17-23","to":"M-13-11","points":[[236.0,929.0],[401.0,929.0],[401.0,1019.0],[368.0,1019.0]],"distance":288.0,"cumulative":1112.0,"units":1},{"from":"M-13-11","to":"L-09-21","points":[[368.0,1019.0],[466.0,1019.0]],"distance":98.0,"cumulative":1210.0,"units":2},{"from":"L-09-21","to":"N-18-21","points":[[466.0,1019.0],[401.0,1019.0],[401.0,1109.0],[268.0,1109.0]],"distance":288.0,"cumulative":1498.0,"units":1},{"from":"N-18-21","to":"P-22-22","points":[[268.0,1109.0],[56.0,1109.0],[56.0,1289.0],[152.0,1289.0]],"distance":488.0,"cumulative":1986.0,"units":1},{"from":"P-22-22","to":"P-13-23","points":[[152.0,1289.0],[336.0,1289.0]],"distance":184.0,"cumulative":2170.0,"units":1},{"from":"P-13-23","to":"P-14-12","points":[[336.0,1289.0],[352.0,1289.0]],"distance":16.0,"cumulative":2186.0,"units":1},{"from":"P-14-12","to":"Q-13-22","points":[[352.0,1289.0],[401.0,1289.0],[401.0,1379.0],[352.0,1379.0]],"distance":188.0,"cumulative":2374.0,"units":1},{"from":"Q-13-22","to":"P-09-13","points":[[352.0,1379.0],[434.0,1379.0]],"distance":82.0,"cumulative":2456.0,"units":1},{"from":"P-09-13","to":"O-13-11","points":[[434.0,1379.0],[401.0,1379.0],[401.0,1199.0],[368.0,1199.0]],"distance":246.0,"cumulative":2702.0,"units":1},{"from":"O-13-11","to":"O-17-11","points":[[368.0,1199.0],[268.0,1199.0]],"distance":100.0,"cumulative":2802.0,"units":1},{"from":"O-17-11","to":"O-13-12","points":[[268.0,1199.0],[352.0,1199.0]],"distance":84.0,"cumulative":2886.0,"units":1},{"from":"O-13-12","to":"N-01-23","points":[[352.0,1199.0],[634.0,1199.0]],"distance":282.0,"cumulative":3168.0,"units":1},{"from":"N-01-23","to":"M-04-13","points":[[634.0,1199.0],[696.0,1199.0],[696.0,1109.0],[584.0,1109.0]],"distance":264.0,"cumulative":3432.0,"units":1},{"from":"M-04-13","to":"M-01-21","points":[[584.0,1109.0],[666.0,1109.0]],"distance":82.0,"cumulative":3514.0,"units":1},{"from":"M-01-21","to":"M-02-21","points":[[666.0,1109.0]],"distance":0.0,"cumulative":3514.0,"units":2},{"from":"M-02-21","to":"J-03-23","points":[[666.0,1109.0],[696.0,1109.0],[696.0,839.0],[584.0,839.0]],"distance":412.0,"cumulative":3926.0,"units":1},{"from":"J-03-23","to":"J-09-23","points":[[584.0,839.0],[434.0,839.0]],"distance":150.0,"cumulative":4076.0,"units":1},{"from":"J-09-23","to":"K-16-11","points":[[434.0,839.0],[318.0,839.0]],"distance":116.0,"cumulative":4192.0,"units":1},{"from":"K-16-11","to":"K-16-12","points":[[318.0,839.0],[302.0,839.0]],"distance":16.0,"cumulative":4208.0,"units":1},{"from":"K-16-12","to":"I/O","points":[[302.0,839.0],[401.0,839.0],[401.0,630.0]],"distance":308.0,"cumulative":4516.0,"units":0}],"racks":[{"name":"J-14-21","x":368.0,"y":778.0,"z":2.0,"access":[368.0,749.0],"units":1},{"name":"J-20-21","x":218.0,"y":778.0,"z":2.0,"access":[218.0,749.0],"units":1},{"name":"L-17-23","x":236.0,"y":900.0,"z":2.0,"access":[236.0,929.0],"units":1},{"name":"M-13-11","x":368.0,"y":990.0,"z":1.0,"access":[368.0,1019.0],"units":1},{"name":"L-09-21","x":466.0,"y":990.0,"z":2.0,"access":[466.0,1019.0],"units":2},{"name":"N-18-21","x":268.0,"y":1138.0,"z":2.0,"access":[268.0,1109.0],"units":1},{"name":"P-22-22","x":152.0,"y":1318.0,"z":2.0,"access":[152.0,1289.0],"units":1},{"name":"P-13-23","x":336.0,"y":1260.0,"z":2.0,"access":[336.0,1289.0],"units":1},{"name":"P-14-12","x":352.0,"y":1318.0,"z":1.0,"access":[352.0,1289.0],"units":1},{"name":"Q-13-22","x":352.0,"y":1350.0,"z":2.0,"access":[352.0,1379.0],"units":1},{"name":"P-09-13","x":434.0,"y":1350.0,"z":1.0,"access":[434.0,1379.0],"units":1},{"name":"O-13-11","x":368.0,"y":1170.0,"z":1.0,"access":[368.0,1199.0],"units":1},{"name":"O-17-11","x":268.0,"y":1170.0,"z":1.0,"access":[268.0,1199.0],"units":1},{"name":"O-13-12","x":352.0,"y":1170.0,"z":1.0,"access":[352.0,1199.0],"units":1},{"name":"N-01-23","x":634.0,"y":1170.0,"z":2.0,"access":[634.0,1199.0],"units":1},{"name":"M-04-13","x":584.0,"y":1138.0,"z":1.0,"access":[584.0,1109.0],"units":1},{"name":"M-01-21","x":666.0,"y":1080.0,"z":2.0,"access":[666.0,1109.0],"units":1},{"name":"M-02-21","x":666.0,"y":1138.0,"z":2.0,"access":[666.0,1109.0],"units":2},{"name":"J-03-23","x":584.0,"y":810.0,"z":2.0,"access":[584.0,839.0],"units":1},{"name":"J-09-23","x":434.0,"y":810.0,"z":2.0,"access":[434.0,839.0],"units":1},{"name":"K-16-11","x":318.0,"y":868.0,"z":1.0,"access":[318.0,839.0],"units":1},{"name":"K-16-12","x":302.0,"y":868.0,"z":1.0,"access":[302.0,839.0],"units":1}],"total_stops":22,"total_units":24,"distance":4516.0,"geometry":{"spines":[56.0,401.0,696.0],"aisles":[-29.0,61.0,151.0,241.0,331.0,421.0,511.0,630.0,749.0,839.0,929.0,1019.0,1109.0,1199.0,1289.0,1379.0,1469.0],"IO":[401.0,630.0],"cost_scale":10,"distance_unit":"koordinat birimi; gerçek fiziksel ölçüm değil","geometry":"varsayımsal 3 geçitli yatay koridor modeli","z":"z1-2 aynı xy yaklaşım noktası; dikey maliyet modellenmedi"},"background":[[368.0,0.0],[352.0,0.0],[336.0,0.0],[318.0,0.0],[302.0,0.0],[286.0,0.0],[268.0,0.0],[252.0,0.0],[236.0,0.0],[218.0,0.0],[202.0,0.0],[186.0,0.0],[168.0,0.0],[152.0,0.0],[136.0,0.0],[118.0,0.0],[102.0,0.0],[86.0,0.0],[368.0,32.0],[352.0,32.0],[336.0,32.0],[368.0,90.0],[352.0,90.0],[336.0,90.0],[318.0,32.0],[302.0,32.0],[286.0,32.0],[318.0,90.0],[302.0,90.0],[286.0,90.0],[268.0,32.0],[252.0,32.0],[236.0,32.0],[268.0,90.0],[252.0,90.0],[236.0,90.0],[218.0,32.0],[202.0,32.0],[186.0,32.0],[218.0,90.0],[202.0,90.0],[186.0,90.0],[168.0,32.0],[152.0,32.0],[136.0,32.0],[168.0,90.0],[152.0,90.0],[136.0,90.0],[118.0,32.0],[102.0,32.0],[86.0,32.0],[118.0,90.0],[102.0,90.0],[86.0,90.0],[368.0,122.0],[352.0,122.0],[336.0,122.0],[368.0,180.0],[352.0,180.0],[336.0,180.0],[318.0,122.0],[302.0,122.0],[286.0,122.0],[318.0,180.0],[302.0,180.0],[286.0,180.0],[268.0,122.0],[252.0,122.0],[236.0,122.0],[268.0,180.0],[252.0,180.0],[236.0,180.0],[218.0,122.0],[202.0,122.0],[186.0,122.0],[218.0,180.0],[202.0,180.0],[186.0,180.0],[168.0,122.0],[152.0,122.0],[136.0,122.0],[168.0,180.0],[152.0,180.0],[136.0,180.0],[118.0,122.0],[102.0,122.0],[86.0,122.0],[118.0,180.0],[102.0,180.0],[86.0,180.0],[368.0,212.0],[352.0,212.0],[336.0,212.0],[368.0,270.0],[352.0,270.0],[336.0,270.0],[318.0,212.0],[302.0,212.0],[286.0,212.0],[318.0,270.0],[302.0,270.0],[286.0,270.0],[268.0,212.0],[252.0,212.0],[236.0,212.0],[268.0,270.0],[252.0,270.0],[236.0,270.0],[218.0,212.0],[202.0,212.0],[186.0,212.0],[218.0,270.0],[202.0,270.0],[186.0,270.0],[168.0,212.0],[152.0,212.0],[136.0,212.0],[168.0,270.0],[152.0,270.0],[136.0,270.0],[118.0,212.0],[102.0,212.0],[86.0,212.0],[118.0,270.0],[102.0,270.0],[86.0,270.0],[368.0,302.0],[352.0,302.0],[336.0,302.0],[368.0,360.0],[352.0,360.0],[336.0,360.0],[318.0,302.0],[302.0,302.0],[286.0,302.0],[318.0,360.0],[302.0,360.0],[286.0,360.0],[268.0,302.0],[252.0,302.0],[236.0,302.0],[268.0,360.0],[252.0,360.0],[236.0,360.0],[218.0,302.0],[202.0,302.0],[186.0,302.0],[218.0,360.0],[202.0,360.0],[186.0,360.0],[168.0,302.0],[152.0,302.0],[136.0,302.0],[168.0,360.0],[152.0,360.0],[136.0,360.0],[118.0,302.0],[102.0,302.0],[86.0,302.0],[118.0,360.0],[102.0,360.0],[86.0,360.0],[368.0,392.0],[352.0,392.0],[336.0,392.0],[368.0,450.0],[352.0,450.0],[336.0,450.0],[318.0,392.0],[302.0,392.0],[286.0,392.0],[318.0,450.0],[302.0,450.0],[286.0,450.0],[268.0,392.0],[252.0,392.0],[236.0,392.0],[268.0,450.0],[252.0,450.0],[236.0,450.0],[218.0,392.0],[202.0,392.0],[186.0,392.0],[218.0,450.0],[202.0,450.0],[186.0,450.0],[168.0,392.0],[152.0,392.0],[136.0,392.0],[168.0,450.0],[152.0,450.0],[136.0,450.0],[118.0,392.0],[102.0,392.0],[86.0,392.0],[118.0,450.0],[102.0,450.0],[86.0,450.0],[368.0,482.0],[352.0,482.0],[336.0,482.0],[318.0,482.0],[302.0,482.0],[286.0,482.0],[268.0,482.0],[252.0,482.0],[236.0,482.0],[218.0,482.0],[202.0,482.0],[186.0,482.0],[168.0,482.0],[152.0,482.0],[136.0,482.0],[118.0,482.0],[102.0,482.0],[86.0,482.0],[666.0,688.0],[650.0,688.0],[634.0,688.0],[616.0,688.0],[600.0,688.0],[584.0,688.0],[566.0,688.0],[550.0,688.0],[534.0,688.0],[516.0,688.0],[500.0,688.0],[484.0,688.0],[466.0,688.0],[450.0,688.0],[434.0,688.0],[368.0,540.0],[352.0,540.0],[336.0,540.0],[318.0,540.0],[302.0,540.0],[286.0,540.0],[268.0,540.0],[252.0,540.0],[236.0,540.0],[218.0,540.0],[202.0,540.0],[186.0,540.0],[168.0,540.0],[152.0,540.0],[136.0,540.0],[118.0,540.0],[102.0,540.0],[86.0,540.0],[666.0,720.0],[650.0,720.0],[634.0,720.0],[666.0,778.0],[650.0,778.0],[634.0,778.0],[616.0,720.0],[600.0,720.0],[584.0,720.0],[616.0,778.0],[600.0,778.0],[584.0,778.0],[566.0,720.0],[550.0,720.0],[534.0,720.0],[566.0,778.0],[550.0,778.0],[534.0,778.0],[516.0,720.0],[500.0,720.0],[484.0,720.0],[516.0,778.0],[500.0,778.0],[484.0,778.0],[466.0,720.0],[450.0,720.0],[434.0,720.0],[466.0,778.0],[450.0,778.0],[434.0,778.0],[368.0,572.0],[352.0,572.0],[336.0,572.0],[368.0,688.0],[352.0,688.0],[336.0,688.0],[318.0,572.0],[302.0,572.0],[286.0,572.0],[318.0,688.0],[302.0,688.0],[286.0,688.0],[268.0,572.0],[252.0,572.0],[236.0,572.0],[268.0,688.0],[252.0,688.0],[236.0,688.0],[218.0,572.0],[202.0,572.0],[186.0,572.0],[218.0,688.0],[202.0,688.0],[186.0,688.0],[168.0,572.0],[152.0,572.0],[136.0,572.0],[168.0,688.0],[152.0,688.0],[136.0,688.0],[118.0,572.0],[102.0,572.0],[86.0,572.0],[118.0,688.0],[102.0,688.0],[86.0,688.0],[666.0,810.0],[650.0,810.0],[634.0,810.0],[666.0,868.0],[650.0,868.0],[634.0,868.0],[616.0,810.0],[600.0,810.0],[584.0,810.0],[616.0,868.0],[600.0,868.0],[584.0,868.0],[566.0,810.0],[550.0,810.0],[534.0,810.0],[566.0,868.0],[550.0,868.0],[534.0,868.0],[516.0,810.0],[500.0,810.0],[484.0,810.0],[516.0,868.0],[500.0,868.0],[484.0,868.0],[466.0,810.0],[450.0,810.0],[434.0,810.0],[466.0,868.0],[450.0,868.0],[434.0,868.0],[368.0,720.0],[352.0,720.0],[336.0,720.0],[368.0,778.0],[352.0,778.0],[336.0,778.0],[318.0,720.0],[302.0,720.0],[286.0,720.0],[318.0,778.0],[302.0,778.0],[286.0,778.0],[268.0,720.0],[252.0,720.0],[236.0,720.0],[268.0,778.0],[252.0,778.0],[236.0,778.0],[218.0,720.0],[202.0,720.0],[186.0,720.0],[218.0,778.0],[202.0,778.0],[186.0,778.0],[168.0,720.0],[152.0,720.0],[136.0,720.0],[168.0,778.0],[152.0,778.0],[136.0,778.0],[118.0,720.0],[102.0,720.0],[86.0,720.0],[118.0,778.0],[102.0,778.0],[86.0,778.0],[666.0,900.0],[650.0,900.0],[634.0,900.0],[666.0,958.0],[650.0,958.0],[634.0,958.0],[616.0,900.0],[600.0,900.0],[584.0,900.0],[616.0,958.0],[600.0,958.0],[584.0,958.0],[566.0,900.0],[550.0,900.0],[534.0,900.0],[566.0,958.0],[550.0,958.0],[534.0,958.0],[516.0,900.0],[500.0,900.0],[484.0,900.0],[516.0,958.0],[500.0,958.0],[484.0,958.0],[466.0,900.0],[450.0,900.0],[434.0,900.0],[466.0,958.0],[450.0,958.0],[434.0,958.0],[368.0,810.0],[352.0,810.0],[336.0,810.0],[368.0,868.0],[352.0,868.0],[336.0,868.0],[318.0,810.0],[302.0,810.0],[286.0,810.0],[318.0,868.0],[302.0,868.0],[286.0,868.0],[268.0,810.0],[252.0,810.0],[236.0,810.0],[268.0,868.0],[252.0,868.0],[236.0,868.0],[218.0,810.0],[202.0,810.0],[186.0,810.0],[218.0,868.0],[202.0,868.0],[186.0,868.0],[168.0,810.0],[152.0,810.0],[136.0,810.0],[168.0,868.0],[152.0,868.0],[136.0,868.0],[118.0,810.0],[102.0,810.0],[86.0,810.0],[118.0,868.0],[102.0,868.0],[86.0,868.0],[666.0,990.0],[650.0,990.0],[634.0,990.0],[666.0,1048.0],[650.0,1048.0],[634.0,1048.0],[616.0,990.0],[600.0,990.0],[584.0,990.0],[616.0,1048.0],[600.0,1048.0],[584.0,1048.0],[566.0,990.0],[550.0,990.0],[534.0,990.0],[566.0,1048.0],[550.0,1048.0],[534.0,1048.0],[516.0,990.0],[500.0,990.0],[484.0,990.0],[516.0,1048.0],[500.0,1048.0],[484.0,1048.0],[466.0,990.0],[450.0,990.0],[434.0,990.0],[466.0,1048.0],[450.0,1048.0],[434.0,1048.0],[368.0,900.0],[352.0,900.0],[336.0,900.0],[368.0,958.0],[352.0,958.0],[336.0,958.0],[318.0,900.0],[302.0,900.0],[286.0,900.0],[318.0,958.0],[302.0,958.0],[286.0,958.0],[268.0,900.0],[252.0,900.0],[236.0,900.0],[268.0,958.0],[252.0,958.0],[236.0,958.0],[218.0,900.0],[202.0,900.0],[186.0,900.0],[218.0,958.0],[202.0,958.0],[186.0,958.0],[168.0,900.0],[152.0,900.0],[136.0,900.0],[168.0,958.0],[152.0,958.0],[136.0,958.0],[118.0,900.0],[102.0,900.0],[86.0,900.0],[118.0,958.0],[102.0,958.0],[86.0,958.0],[666.0,1080.0],[650.0,1080.0],[634.0,1080.0],[666.0,1138.0],[650.0,1138.0],[634.0,1138.0],[616.0,1080.0],[600.0,1080.0],[584.0,1080.0],[616.0,1138.0],[600.0,1138.0],[584.0,1138.0],[566.0,1080.0],[550.0,1080.0],[534.0,1080.0],[566.0,1138.0],[550.0,1138.0],[534.0,1138.0],[516.0,1080.0],[500.0,1080.0],[484.0,1080.0],[516.0,1138.0],[500.0,1138.0],[484.0,1138.0],[466.0,1080.0],[450.0,1080.0],[434.0,1080.0],[466.0,1138.0],[450.0,1138.0],[434.0,1138.0],[368.0,990.0],[352.0,990.0],[336.0,990.0],[368.0,1048.0],[352.0,1048.0],[336.0,1048.0],[318.0,990.0],[302.0,990.0],[286.0,990.0],[318.0,1048.0],[302.0,1048.0],[286.0,1048.0],[268.0,990.0],[252.0,990.0],[236.0,990.0],[268.0,1048.0],[252.0,1048.0],[236.0,1048.0],[218.0,990.0],[202.0,990.0],[186.0,990.0],[218.0,1048.0],[202.0,1048.0],[186.0,1048.0],[168.0,990.0],[152.0,990.0],[136.0,990.0],[168.0,1048.0],[152.0,1048.0],[136.0,1048.0],[118.0,990.0],[102.0,990.0],[86.0,990.0],[118.0,1048.0],[102.0,1048.0],[86.0,1048.0],[666.0,1170.0],[650.0,1170.0],[634.0,1170.0],[666.0,1228.0],[650.0,1228.0],[634.0,1228.0],[616.0,1170.0],[600.0,1170.0],[584.0,1170.0],[616.0,1228.0],[600.0,1228.0],[584.0,1228.0],[566.0,1170.0],[550.0,1170.0],[534.0,1170.0],[566.0,1228.0],[550.0,1228.0],[534.0,1228.0],[516.0,1170.0],[500.0,1170.0],[484.0,1170.0],[516.0,1228.0],[500.0,1228.0],[484.0,1228.0],[466.0,1170.0],[450.0,1170.0],[434.0,1170.0],[466.0,1228.0],[450.0,1228.0],[434.0,1228.0],[368.0,1080.0],[352.0,1080.0],[336.0,1080.0],[368.0,1138.0],[352.0,1138.0],[336.0,1138.0],[318.0,1080.0],[302.0,1080.0],[286.0,1080.0],[318.0,1138.0],[302.0,1138.0],[286.0,1138.0],[268.0,1080.0],[252.0,1080.0],[236.0,1080.0],[268.0,1138.0],[252.0,1138.0],[236.0,1138.0],[218.0,1080.0],[202.0,1080.0],[186.0,1080.0],[218.0,1138.0],[202.0,1138.0],[186.0,1138.0],[168.0,1080.0],[152.0,1080.0],[136.0,1080.0],[168.0,1138.0],[152.0,1138.0],[136.0,1138.0],[118.0,1080.0],[102.0,1080.0],[86.0,1080.0],[118.0,1138.0],[102.0,1138.0],[86.0,1138.0],[666.0,1260.0],[650.0,1260.0],[634.0,1260.0],[666.0,1318.0],[650.0,1318.0],[634.0,1318.0],[616.0,1260.0],[600.0,1260.0],[584.0,1260.0],[616.0,1318.0],[600.0,1318.0],[584.0,1318.0],[566.0,1260.0],[550.0,1260.0],[534.0,1260.0],[566.0,1318.0],[550.0,1318.0],[534.0,1318.0],[516.0,1260.0],[500.0,1260.0],[484.0,1260.0],[516.0,1318.0],[500.0,1318.0],[484.0,1318.0],[466.0,1260.0],[450.0,1260.0],[434.0,1260.0],[466.0,1318.0],[450.0,1318.0],[434.0,1318.0],[368.0,1170.0],[352.0,1170.0],[336.0,1170.0],[368.0,1228.0],[352.0,1228.0],[336.0,1228.0],[318.0,1170.0],[302.0,1170.0],[286.0,1170.0],[318.0,1228.0],[302.0,1228.0],[286.0,1228.0],[268.0,1170.0],[252.0,1170.0],[236.0,1170.0],[268.0,1228.0],[252.0,1228.0],[236.0,1228.0],[218.0,1170.0],[202.0,1170.0],[186.0,1170.0],[218.0,1228.0],[202.0,1228.0],[186.0,1228.0],[168.0,1170.0],[152.0,1170.0],[136.0,1170.0],[168.0,1228.0],[152.0,1228.0],[136.0,1228.0],[118.0,1170.0],[102.0,1170.0],[86.0,1170.0],[118.0,1228.0],[102.0,1228.0],[86.0,1228.0],[666.0,1350.0],[650.0,1350.0],[634.0,1350.0],[666.0,1408.0],[650.0,1408.0],[634.0,1408.0],[616.0,1350.0],[600.0,1350.0],[584.0,1350.0],[616.0,1408.0],[600.0,1408.0],[584.0,1408.0],[566.0,1350.0],[550.0,1350.0],[534.0,1350.0],[566.0,1408.0],[550.0,1408.0],[534.0,1408.0],[516.0,1350.0],[500.0,1350.0],[484.0,1350.0],[516.0,1408.0],[500.0,1408.0],[484.0,1408.0],[466.0,1350.0],[450.0,1350.0],[434.0,1350.0],[466.0,1408.0],[450.0,1408.0],[434.0,1408.0],[368.0,1260.0],[352.0,1260.0],[336.0,1260.0],[368.0,1318.0],[352.0,1318.0],[336.0,1318.0],[318.0,1260.0],[302.0,1260.0],[286.0,1260.0],[318.0,1318.0],[302.0,1318.0],[286.0,1318.0],[268.0,1260.0],[252.0,1260.0],[236.0,1260.0],[268.0,1318.0],[252.0,1318.0],[236.0,1318.0],[218.0,1260.0],[202.0,1260.0],[186.0,1260.0],[218.0,1318.0],[202.0,1318.0],[186.0,1318.0],[168.0,1260.0],[152.0,1260.0],[136.0,1260.0],[168.0,1318.0],[152.0,1318.0],[136.0,1318.0],[118.0,1260.0],[102.0,1260.0],[86.0,1260.0],[118.0,1318.0],[102.0,1318.0],[86.0,1318.0],[666.0,1440.0],[650.0,1440.0],[634.0,1440.0],[616.0,1440.0],[600.0,1440.0],[584.0,1440.0],[566.0,1440.0],[550.0,1440.0],[534.0,1440.0],[516.0,1440.0],[500.0,1440.0],[484.0,1440.0],[466.0,1440.0],[450.0,1440.0],[434.0,1440.0],[368.0,1350.0],[352.0,1350.0],[336.0,1350.0],[368.0,1408.0],[352.0,1408.0],[336.0,1408.0],[318.0,1350.0],[302.0,1350.0],[286.0,1350.0],[318.0,1408.0],[302.0,1408.0],[286.0,1408.0],[268.0,1350.0],[252.0,1350.0],[236.0,1350.0],[268.0,1408.0],[252.0,1408.0],[236.0,1408.0],[218.0,1350.0],[202.0,1350.0],[186.0,1350.0],[218.0,1408.0],[202.0,1408.0],[186.0,1408.0],[168.0,1350.0],[152.0,1350.0],[136.0,1350.0],[168.0,1408.0],[152.0,1408.0],[136.0,1408.0],[118.0,1350.0],[102.0,1350.0],[86.0,1350.0],[118.0,1408.0],[102.0,1408.0],[86.0,1408.0],[368.0,1440.0],[352.0,1440.0],[336.0,1440.0],[318.0,1440.0],[302.0,1440.0],[286.0,1440.0],[268.0,1440.0],[252.0,1440.0],[236.0,1440.0],[218.0,1440.0],[202.0,1440.0],[186.0,1440.0],[168.0,1440.0],[152.0,1440.0],[136.0,1440.0],[118.0,1440.0],[102.0,1440.0],[86.0,1440.0]]}</script>
+<script>
+'use strict';
+const model=JSON.parse(document.getElementById('payload').textContent);
+const svg=document.getElementById('map');
+const NS='http://www.w3.org/2000/svg';
+const $=(id)=>document.getElementById(id);
+const geom=model.geometry;
+let allX=[model.io[0],...model.background.map(p=>p[0]),...model.racks.map(p=>p.x)];
+let allY=[model.io[1],...model.background.map(p=>p[1]),...model.racks.map(p=>p.y)];
+const xmin=Math.min(...allX)-28, xmax=Math.max(...allX)+28;
+const ymin=Math.min(...allY)-38, ymax=Math.max(...allY)+38;
+const screenX=(x)=>34+(x-xmin)/(xmax-xmin)*492;
+const screenY=(y)=>30+(ymax-y)/(ymax-ymin)*557;
+const xy=(p)=>[screenX(p[0]),screenY(p[1])];
+const add=(id,tag,attrs={})=>{const el=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));$(id).appendChild(el);return el;};
+function line(id,a,b,style={}){let A=xy(a),B=xy(b);return add(id,'line',{x1:A[0],y1:A[1],x2:B[0],y2:B[1],...style});}
+for (const aisle of geom.aisles){line('aisles',[xmin+20,aisle],[xmax-20,aisle],{stroke:'#263f59','stroke-width':1.3,'stroke-dasharray':'4 8'});}
+for (const spine of geom.spines){line('aisles',[spine,ymin+20],[spine,ymax-20],{stroke:'#36627f','stroke-width':2.4,'stroke-opacity':'.75'});}
+for(const rack of model.background){let p=xy(rack);add('racks','rect',{x:p[0]-2.5,y:p[1]-1.3,width:5,height:2.6,rx:.4,fill:'#62758b','fill-opacity':'.46'});}
+for (const rack of model.racks){
+  let p=xy([rack.x,rack.y]),q=xy(rack.access);
+  line('links',[rack.x,rack.y],rack.access,{stroke:'#84a4c1','stroke-width':1.1,'stroke-dasharray':'2 3'});
+  add('picks','circle',{cx:p[0],cy:p[1],r:4.2,fill:'#71a8ff',stroke:'#e5f1ff','stroke-width':1});
+  add('picks','circle',{cx:q[0],cy:q[1],r:3.2,fill:'#99e6f7'});
+}
+let pathPts=[], stopPixels=[], stopRefs=[];let pixels=0;
+for (const leg of model.legs){
+  const poly=leg.points.map(xy);
+  if(!pathPts.length)pathPts.push(poly[0]);
+  for(let i=1;i<poly.length;i++){
+    pixels+=Math.hypot(poly[i][0]-poly[i-1][0],poly[i][1]-poly[i-1][1]);
+    pathPts.push(poly[i]);
+  }
+  stopPixels.push(pixels);stopRefs.push(leg.to);
+}
+const d=pathPts.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+' '+p[1].toFixed(2)).join(' ');
+add('route','path',{d,fill:'none',stroke:'#23d0ab','stroke-width':3.3,'stroke-linecap':'round','stroke-linejoin':'round','stroke-opacity':'.86'});
+const path=add('route','path',{d,fill:'none',stroke:'transparent','stroke-width':14});
+const totalPixels=path.getTotalLength();
+const start=xy(model.io);
+add('io-icon','rect',{x:start[0]-9,y:start[1]-9,width:18,height:18,rx:3,fill:'#d59fff',stroke:'#f3e6ff','stroke-width':1.5});
+const text=add('io-icon','text',{x:start[0],y:start[1]+3.2,'text-anchor':'middle','font-size':8,'font-weight':700,fill:'#210c38'});text.textContent='I/O';
+$('stops-total').textContent=model.total_stops;
+$('units-total').textContent=model.total_units;
+const stopList=$('stop-list');
+let stopNodes=[];
+model.racks.forEach((rack,i)=>{
+  let btn=document.createElement('button');btn.className='stop';btn.type='button';
+  let b=document.createElement('span');b.className='snum';b.textContent=i+1;
+  btn.appendChild(b);btn.appendChild(document.createTextNode(' '+rack.name+' · '+rack.units+' adet'));
+  btn.addEventListener('click',()=>{pause();position=Math.min(totalPixels,stopPixels[i]);paint();});
+  stopNodes.push(btn);stopList.appendChild(btn);
+});
+let position=0,playing=false,lastTime=0,lastStop=-1,pausedUntil=0;
+const track=$('seek');
+function updateStats(){
+  let completed=0,units=0;
+  for(let i=0;i<model.total_stops;i++){
+    if(position+1e-4>=stopPixels[i]){completed++;units+=model.racks[i].units;}
+  }
+  $('stops-done').textContent=completed;$('units-done').textContent=units;
+  let idx=Math.min(completed,model.racks.length-1);
+  if(position>=totalPixels-.01){$('current-label').textContent='I/O — Görev tamamlandı';$('current-info').textContent='Tüm raflar ziyaret edildi, başlangıca dönüldü.';}
+  else if(completed<model.racks.length){
+    const next=model.racks[completed];
+    $('current-label').textContent=next.name;
+    $('current-info').textContent='Sıradaki durak · '+next.units+' ürün toplanacak';
+  }else{$('current-label').textContent='I/O';$('current-info').textContent='Depo çıkışına dönüş';}
+  stopNodes.forEach((btn,i)=>{btn.classList.toggle('done',i<completed);btn.classList.toggle('active',i===completed);});
+  $('travelled').textContent='Rota ilerlemesi: %'+Math.round(100*position/Math.max(totalPixels,1))+' · Toplam '+model.distance.toFixed(1)+' koordinat birimi';
+  track.value=String(Math.round(1000*position/Math.max(totalPixels,1)));
+  $('run-state').textContent=position>=totalPixels-.01?'BİTTİ':playing?'HAREKET EDİYOR':'DURAKLATILDI';
+  return completed;
+}
+function paint(){
+  let safe=Math.min(Math.max(position,0),totalPixels);
+  let a=path.getPointAtLength(safe),b=path.getPointAtLength(Math.min(totalPixels,safe+1.1));
+  let angle=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+  $('forklift').style.display='block';
+  $('forklift').setAttribute('transform',`translate(${a.x.toFixed(2)} ${a.y.toFixed(2)}) rotate(${angle.toFixed(1)})`);
+  updateStats();
+}
+function pause(){playing=false;lastTime=0;paint();}
+function tick(t){
+  if(!playing)return;
+  if(!lastTime)lastTime=t;
+  const dt=Math.min(.08,(t-lastTime)/1000);lastTime=t;
+  if(t<pausedUntil){requestAnimationFrame(tick);return;}
+  const before=updateStats();
+  position=Math.min(totalPixels,position+dt*85*Number($('speed').value));
+  const after=updateStats();
+  if(after>before && position<totalPixels){position=stopPixels[after-1];pausedUntil=t+280/Number($('speed').value);}
+  paint();
+  if(position>=totalPixels){pause();$('run-state').textContent='BİTTİ';return;}
+  requestAnimationFrame(tick);
+}
+$('play').addEventListener('click',()=>{if(position>=totalPixels-.01)position=0;if(playing)return;playing=true;lastTime=0;pausedUntil=0;requestAnimationFrame(tick);paint();});
+$('pause').addEventListener('click',pause);
+$('reset').addEventListener('click',()=>{pause();position=0;pausedUntil=0;paint();$('run-state').textContent='HAZIR';});
+track.addEventListener('input',()=>{pause();position=totalPixels*Number(track.value)/1000;paint();});
+paint();$('run-state').textContent='HAZIR';
+</script>
+</body></html>

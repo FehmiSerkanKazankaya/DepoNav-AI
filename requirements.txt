@@ -1,0 +1,16 @@
+# Python 3.11 önerilir. Dört sınıflandırıcı 1.8.0 ile eğitildi.
+scikit-learn==1.8.0
+pandas>=2.1,<3
+numpy>=1.26,<3
+scipy>=1.12,<2
+joblib>=1.3,<2
+plotly>=5.22,<7
+streamlit>=1.50,<2
+matplotlib>=3.8,<4
+notebook>=7,<8
+ipykernel>=6,<8
+nbformat>=5.9,<6
+ortools>=9.11,<11
+
+# XGBoost classification
+xgboost==3.1.3

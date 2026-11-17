@@ -1,0 +1,53 @@
+{
+  "rows": {
+    "Customer_Order": 122370,
+    "Picking_Wave": 215192,
+    "Storage_Location": 2292
+  },
+  "total_waves": 9707,
+  "fully_matched_waves": 7323,
+  "eligible_z1_z2_waves": 7322,
+  "proven_optimal_wave_count": 7322,
+  "distance_model": {
+    "spines": [
+      56.0,
+      401.0,
+      696.0
+    ],
+    "aisles": [
+      -29.0,
+      61.0,
+      151.0,
+      241.0,
+      331.0,
+      421.0,
+      511.0,
+      630.0,
+      749.0,
+      839.0,
+      929.0,
+      1019.0,
+      1109.0,
+      1199.0,
+      1289.0,
+      1379.0,
+      1469.0
+    ],
+    "IO": [
+      401.0,
+      630.0
+    ],
+    "cost_scale": 10,
+    "distance_unit": "koordinat birimi; gerçek fiziksel ölçüm değil",
+    "geometry": "varsayımsal 3 geçitli yatay koridor modeli",
+    "z": "z1-2 aynı xy yaklaşım noktası; dikey maliyet modellenmedi"
+  },
+  "limitations": [
+    "koridor bağlantıları varsayımsal",
+    "I/O koordinatı tahmini",
+    "z seviyesi geçiş maliyeti yok",
+    "eşleşmeyen dalgalar eğitimde yok",
+    "sadece OPTIMAL etiketler"
+  ],
+  "note": "TSP once hesaplanmış mevcut dalgaların kayıtlarıdır. ML hedefi bu mesafeler değildir."
+}
